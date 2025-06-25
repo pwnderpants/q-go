@@ -5,7 +5,7 @@ import (
 	"github.com/rivo/tview"
 )
 
-// CreateTodoList creates and configures the todo list widget
+// Setup and configure list widget
 func CreateTodoList() *tview.List {
 	list := tview.NewList()
 	list.SetTitle("Todo list (Press Tab to switch between input and list)")
@@ -17,7 +17,7 @@ func CreateTodoList() *tview.List {
 	return list
 }
 
-// CreateInputField creates and configures the input field widget
+// Setup and configure input widget
 func CreateInputField() *tview.InputField {
 	text := tview.NewInputField().SetLabel("Add new todo item: ")
 	text.SetBackgroundColor(tcell.ColorDefault)
@@ -27,4 +27,29 @@ func CreateInputField() *tview.InputField {
 	text.SetFieldBackgroundColor(tcell.ColorDefault)
 
 	return text
+}
+
+// Get all current items on the list
+func GetTodoItems(list *tview.List) []TodoItem {
+	var items []TodoItem
+
+	for i := 0; i < list.GetItemCount(); i++ {
+		mainText, _ := list.GetItemText(i)
+
+		items = append(items, TodoItem{
+			Text:      mainText,
+			Completed: false,
+		})
+	}
+
+	return items
+}
+
+// Load all items to the list
+func LoadTodoItems(list *tview.List, items []TodoItem) {
+	list.Clear()
+
+	for _, item := range items {
+		list.AddItem(item.Text, "", '-', nil)
+	}
 }
