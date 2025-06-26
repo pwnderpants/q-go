@@ -13,7 +13,7 @@ func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tv
 	// When user presses the enteer add text to list
 	text.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-			handleAddTodoItem(text, list)
+			addTodoItem(text, list)
 		}
 	})
 
@@ -32,9 +32,14 @@ func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tv
 // Handler for list widget
 func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tview.List) {
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// Handle key events for list widget
 		if event.Key() == tcell.KeyTab {
 			app.SetFocus(text)
+			return nil
+		}
 
+		if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
+			// Placeholder for delete functionality
 			return nil
 		}
 
@@ -43,7 +48,7 @@ func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tvi
 }
 
 // Function for adding text to list
-func handleAddTodoItem(text *tview.InputField, list *tview.List) {
+func addTodoItem(text *tview.InputField, list *tview.List) {
 	newItem := text.GetText()
 
 	if newItem != "" {

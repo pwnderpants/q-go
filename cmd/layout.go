@@ -6,6 +6,6 @@ import "github.com/rivo/tview"
 func CreateMainLayout(text *tview.InputField, list *tview.List) *tview.Flex {
 	return tview.NewFlex().
 		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
-			AddItem(text, 0, 1, true).
-			AddItem(list, 0, 25, false), 0, 2, false)
+			AddItem(text, 3, 0, true).
+			AddItem(list, 0, 1, false), 0, 2, false)
 }
