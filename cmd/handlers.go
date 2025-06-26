@@ -39,7 +39,22 @@ func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tvi
 		}
 
 		if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
-			// Placeholder for delete functionality
+			// Remove the currently selected item
+			addRemoveItem(list)
+			return nil
+		}
+
+		if event.Modifiers() == tcell.ModShift && event.Key() == tcell.KeyUp {
+			// Implement logic to move selected item up
+			moveSelectedItem(list, "up")
+
+			return nil
+		}
+
+		if event.Modifiers() == tcell.ModShift && event.Key() == tcell.KeyDown {
+			// Implement logic to move selected item down
+			moveSelectedItem(list, "down")
+
 			return nil
 		}
 
@@ -59,6 +74,88 @@ func addTodoItem(text *tview.InputField, list *tview.List) {
 
 		if err := SaveTodoList(items); err != nil {
 			fmt.Println("Error saving todo items:", err.Error())
+		}
+	}
+}
+
+// Function for removing selected item from list
+func addRemoveItem(list *tview.List) {
+	list.RemoveItem(list.GetCurrentItem())
+
+	items := GetTodoItems(list)
+
+	if err := SaveTodoList(items); err != nil {
+		fmt.Println("Error saving todo items:", err.Error())
+	}
+}
+
+// Display generic modal dialog, can be used to display messages
+func ShowModalDialog(app *tview.Application, parent tview.Primitive) {
+	// Create the modal dialog
+	modal := CreateModalDialog("Hello world!")
+
+	// Setup modal handlers
+	SetupModalHandlers(app, modal, parent)
+
+	// Display it
+	app.SetRoot(modal, true)
+}
+
+// Modal dialog handlers
+func SetupModalHandlers(app *tview.Application, modal *tview.Modal, parent tview.Primitive) {
+	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		app.SetRoot(parent, true)
+	})
+}
+
+// Function to move selected item up or down in the list
+func moveSelectedItem(list *tview.List, direction string) {
+	currentIndex := list.GetCurrentItem()
+	itemCount := list.GetItemCount()
+
+	switch direction {
+	case "up":
+		if currentIndex > 0 {
+			// Get the current item's text
+			currMainText, currSecondaryText := list.GetItemText(currentIndex)
+
+			// Remove the current item
+			list.RemoveItem(currentIndex)
+
+			// Insert it at the previous position
+			list.InsertItem(currentIndex-1, currMainText, currSecondaryText, '-', nil)
+
+			// Set focus back to the moved item
+			list.SetCurrentItem(currentIndex - 1)
+
+			// Save the updated list
+			items := GetTodoItems(list)
+
+			if err := SaveTodoList(items); err != nil {
+				fmt.Println("Error saving todo items:", err.Error())
+			}
+		}
+
+	case "down":
+		if currentIndex < itemCount-1 {
+			// Get the current item's text
+			mainText, secondaryText := list.GetItemText(currentIndex)
+
+			// Remove the current item
+			list.RemoveItem(currentIndex)
+
+			// Insert it at the next position
+			list.InsertItem(currentIndex+1, mainText, secondaryText, '-', nil)
+
+			// Set focus back to the moved item
+			list.SetCurrentItem(currentIndex + 1)
+
+			// Save the updated list
+			items := GetTodoItems(list)
+
+			if err := SaveTodoList(items); err != nil {
+				fmt.Println("Error saving todo items:", err.Error())
+			}
 		}
 	}
 }

@@ -53,3 +53,14 @@ func LoadTodoItems(list *tview.List, items []TodoItem) {
 		list.AddItem(item.Text, "", '-', nil)
 	}
 }
+
+// Create and configure modal dialog widget
+func CreateModalDialog(msg string) *tview.Modal {
+	modal := tview.NewModal().
+		SetText(msg).
+		AddButtons([]string{"OK"}).
+		SetBackgroundColor((tcell.ColorDefault)).
+		SetTextColor((tcell.ColorRed))
+
+	return modal
+}
