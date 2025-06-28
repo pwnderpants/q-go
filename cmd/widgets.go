@@ -8,7 +8,7 @@ import (
 // Setup and configure list widget
 func CreateTodoList() *tview.List {
 	list := tview.NewList()
-	list.SetTitle("Todo list (Press Tab to switch between input and list)")
+	list.SetTitle("Todo list - (Press ? for help)")
 	list.SetBorder(true)
 	list.SetBackgroundColor(tcell.ColorDefault)
 	list.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))

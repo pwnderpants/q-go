@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/rivo/tview"
 )
@@ -31,10 +34,29 @@ func Execute() {
 
 	// Setup handlers
 	SetupInputHandlers(app, text, list)
-	SetupListHandlers(app, text, list)
+	SetupListHandlers(app, text, list, flex)
+
+	// Setup graceful shutdown
+	setupSignalTrapper(app)
 
 	// Run application
-	if err := app.SetRoot(flex, true).SetFocus(text).Run(); err != nil {
-		panic(err)
+	if err := app.SetRoot(flex, true).SetFocus(list).Run(); err != nil {
+		fmt.Printf("Application error: %v\n", err)
+		os.Exit(1)
 	}
+}
+
+// Setup graceful shutdown even with Ctrl+C or SIGTERM
+func setupSignalTrapper(app *tview.Application) {
+	// Create a channel to receive OS signals
+	sigChan := make(chan os.Signal, 1)
+
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Run a goroutine to listen for signals
+	go func() {
+		<-sigChan
+
+		app.Stop() // Gracefully stop the tview application
+	}()
 }

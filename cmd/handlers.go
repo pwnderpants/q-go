@@ -30,7 +30,7 @@ func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tv
 }
 
 // Handler for list widget
-func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tview.List) {
+func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tview.List, mainLayout tview.Primitive) {
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		// Handle key events for list widget
 		if event.Key() == tcell.KeyTab {
@@ -54,6 +54,19 @@ func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tvi
 		if event.Modifiers() == tcell.ModShift && event.Key() == tcell.KeyDown {
 			// Implement logic to move selected item down
 			moveSelectedItem(list, "down")
+
+			return nil
+		}
+
+		if event.Rune() == '?' {
+			// Show help when user presses '?' button
+			showHelpHandler(app, list, mainLayout)
+
+			return nil
+		}
+
+		if event.Rune() == 'q' {
+			app.Stop()
 
 			return nil
 		}
@@ -158,4 +171,23 @@ func moveSelectedItem(list *tview.List, direction string) {
 			}
 		}
 	}
+}
+
+// Function to handle '?' key press in list widget
+func showHelpHandler(app *tview.Application, list *tview.List, mainLayout tview.Primitive) {
+	// Create a help modal dialog
+	modal := CreateModalDialog(`Help 
+		
+		Press Tab to toggle insert mode
+		Backspace to delete items
+		Shift + Up/Down to move items`)
+
+	// Setup modal handlers to return to the main layout
+	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+		// Return to the main layout and set focus to the list
+		app.SetRoot(mainLayout, true).SetFocus(list)
+	})
+
+	// Display the modal
+	app.SetRoot(modal, true)
 }
