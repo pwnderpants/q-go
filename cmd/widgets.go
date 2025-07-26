@@ -25,6 +25,7 @@ func CreateInputField() *tview.InputField {
 	text.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
 	text.SetFieldTextColor(tcell.ColorYellow)
 	text.SetFieldBackgroundColor(tcell.ColorDefault)
+	text.SetBorder(true)
 
 	return text
 }
@@ -54,6 +55,91 @@ func LoadTodoItems(list *tview.List, items []TodoItem) {
 	}
 }
 
+// Create and configure sidebar for subjects
+func CreateSubjectSidebar() *tview.List {
+	sidebar := tview.NewList()
+	sidebar.SetTitle("Subjects")
+	sidebar.SetBorder(true)
+	sidebar.SetBackgroundColor(tcell.ColorDefault)
+	sidebar.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+	sidebar.SetSecondaryTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+	sidebar.ShowSecondaryText(false)
+	sidebar.SetWrapAround(false)
+
+	return sidebar
+}
+
+// Load subjects into sidebar
+func LoadSubjects(sidebar *tview.List, subjects []Subject, currentSubject string) {
+	sidebar.Clear()
+
+	for i, subject := range subjects {
+		prefix := "  "
+		if subject.Name == currentSubject {
+			prefix = "→ "
+		}
+		sidebar.AddItem(prefix+subject.Name, "", rune('1'+i), nil)
+	}
+}
+
+// Get current subject from app data
+func GetCurrentSubject(appData *AppData) *Subject {
+	for i := range appData.Subjects {
+		if appData.Subjects[i].Name == appData.CurrentSubject {
+			return &appData.Subjects[i]
+		}
+	}
+	return nil
+}
+
+// Add new subject to app data
+func AddSubject(appData *AppData, name string) {
+	appData.Subjects = append(appData.Subjects, Subject{Name: name, Items: []TodoItem{}})
+}
+
+// Delete subject from app data
+func DeleteSubject(appData *AppData, name string) bool {
+	if len(appData.Subjects) <= 1 {
+		return false // Don't delete if it's the last subject
+	}
+
+	for i, subject := range appData.Subjects {
+		if subject.Name == name {
+			appData.Subjects = append(appData.Subjects[:i], appData.Subjects[i+1:]...)
+			if appData.CurrentSubject == name {
+				appData.CurrentSubject = appData.Subjects[0].Name
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// Rename subject in app data
+func RenameSubject(appData *AppData, oldName, newName string) bool {
+	if newName == "" || newName == oldName {
+		return false
+	}
+
+	// Check if new name already exists
+	for _, subject := range appData.Subjects {
+		if subject.Name == newName {
+			return false
+		}
+	}
+
+	for i := range appData.Subjects {
+		if appData.Subjects[i].Name == oldName {
+			appData.Subjects[i].Name = newName
+			if appData.CurrentSubject == oldName {
+				appData.CurrentSubject = newName
+			}
+			return true
+		}
+	}
+	return false
+}
+
 // Create and configure modal dialog widget
 func CreateModalDialog(msg string) *tview.Modal {
 	modal := tview.NewModal().
@@ -63,4 +149,17 @@ func CreateModalDialog(msg string) *tview.Modal {
 		SetTextColor((tcell.ColorRed))
 
 	return modal
+}
+
+// Create input modal for new subject
+func CreateInputModal(title, label string) *tview.Form {
+	form := tview.NewForm()
+	form.SetTitle(title)
+	form.SetBorder(true)
+	form.SetBackgroundColor(tcell.ColorDefault)
+	form.AddInputField(label, "", 20, nil, nil)
+	form.AddButton("OK", nil)
+	form.AddButton("Cancel", nil)
+
+	return form
 }

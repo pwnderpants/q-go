@@ -1,19 +1,17 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 // Handler for text input widget
-func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tview.List) {
+func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tview.List, sidebar *tview.List, appData *AppData) {
 
 	// When user presses the enteer add text to list
 	text.SetDoneFunc(func(key tcell.Key) {
 		if key == tcell.KeyEnter {
-			addTodoItem(text, list)
+			addTodoItem(text, list, appData)
 		}
 	})
 
@@ -25,35 +23,49 @@ func SetupInputHandlers(app *tview.Application, text *tview.InputField, list *tv
 			return nil
 		}
 
+		if event.Key() == tcell.KeyEsc {
+			app.SetFocus(sidebar)
+
+			return nil
+		}
+
 		return event
 	})
 }
 
 // Handler for list widget
-func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tview.List, mainLayout tview.Primitive) {
+func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tview.List, sidebar *tview.List, mainLayout tview.Primitive, appData *AppData) {
 	list.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		// Handle key events for list widget
 		if event.Key() == tcell.KeyTab {
-			app.SetFocus(text)
+			app.SetFocus(sidebar)
+
+			return nil
+		}
+
+		if event.Key() == tcell.KeyEsc {
+			app.SetFocus(sidebar)
+
 			return nil
 		}
 
 		if event.Key() == tcell.KeyBackspace || event.Key() == tcell.KeyBackspace2 {
 			// Remove the currently selected item
-			addRemoveItem(list)
+			removeItem(list, appData)
+
 			return nil
 		}
 
 		if event.Modifiers() == tcell.ModShift && event.Key() == tcell.KeyUp {
 			// Implement logic to move selected item up
-			moveSelectedItem(list, "up")
+			moveSelectedItem(list, "up", appData)
 
 			return nil
 		}
 
 		if event.Modifiers() == tcell.ModShift && event.Key() == tcell.KeyDown {
 			// Implement logic to move selected item down
-			moveSelectedItem(list, "down")
+			moveSelectedItem(list, "down", appData)
 
 			return nil
 		}
@@ -75,30 +87,114 @@ func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tvi
 	})
 }
 
+// Handler for sidebar widget
+func SetupSidebarHandlers(app *tview.Application, sidebar *tview.List, text *tview.InputField, list *tview.List, mainLayout tview.Primitive, appData *AppData) {
+	sidebar.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			app.SetFocus(text)
+
+			return nil
+		}
+
+		if event.Key() == tcell.KeyEnter {
+			// Switch to selected subject
+			currentIndex := sidebar.GetCurrentItem()
+
+			if currentIndex >= 0 && currentIndex < len(appData.Subjects) {
+				appData.CurrentSubject = appData.Subjects[currentIndex].Name
+
+				LoadSubjects(sidebar, appData.Subjects, appData.CurrentSubject)
+				refreshTodoList(list, appData)
+				list.SetTitle("Todo list - " + appData.CurrentSubject + " (Press ? for help)")
+				SaveAppData(appData)
+			}
+
+			return nil
+		}
+
+		if event.Rune() == 'n' {
+			// Create new subject
+			showNewSubjectModal(app, sidebar, list, mainLayout, appData)
+
+			return nil
+		}
+
+		if event.Rune() == 'd' {
+			// Delete current subject
+			if len(appData.Subjects) > 1 {
+				currentIndex := sidebar.GetCurrentItem()
+
+				if currentIndex >= 0 && currentIndex < len(appData.Subjects) {
+					subjectName := appData.Subjects[currentIndex].Name
+
+					if DeleteSubject(appData, subjectName) {
+						LoadSubjects(sidebar, appData.Subjects, appData.CurrentSubject)
+						refreshTodoList(list, appData)
+						list.SetTitle("Todo list - " + appData.CurrentSubject + " (Press ? for help)")
+						SaveAppData(appData)
+					}
+				}
+			}
+
+			return nil
+		}
+
+		if event.Rune() == 'r' {
+			// Rename current subject
+			currentIndex := sidebar.GetCurrentItem()
+
+			if currentIndex >= 0 && currentIndex < len(appData.Subjects) {
+				subjectName := appData.Subjects[currentIndex].Name
+
+				showRenameSubjectModal(app, sidebar, list, mainLayout, appData, subjectName)
+			}
+
+			return nil
+		}
+
+		if event.Rune() == '?' {
+			showHelpHandler(app, list, mainLayout)
+
+			return nil
+		}
+
+		if event.Rune() == 'q' {
+			app.Stop()
+
+			return nil
+		}
+
+		return event
+	})
+}
+
 // Function for adding text to list
-func addTodoItem(text *tview.InputField, list *tview.List) {
+func addTodoItem(text *tview.InputField, list *tview.List, appData *AppData) {
 	newItem := text.GetText()
 
 	if newItem != "" {
 		list.AddItem(newItem, "", '-', nil)
 		text.SetText("")
 
-		items := GetTodoItems(list)
+		currentSubject := GetCurrentSubject(appData)
 
-		if err := SaveTodoList(items); err != nil {
-			fmt.Println("Error saving todo items:", err.Error())
+		if currentSubject != nil {
+			currentSubject.Items = GetTodoItems(list)
+
+			SaveAppData(appData)
 		}
 	}
 }
 
 // Function for removing selected item from list
-func addRemoveItem(list *tview.List) {
+func removeItem(list *tview.List, appData *AppData) {
 	list.RemoveItem(list.GetCurrentItem())
 
-	items := GetTodoItems(list)
+	currentSubject := GetCurrentSubject(appData)
 
-	if err := SaveTodoList(items); err != nil {
-		fmt.Println("Error saving todo items:", err.Error())
+	if currentSubject != nil {
+		currentSubject.Items = GetTodoItems(list)
+		SaveAppData(appData)
 	}
 }
 
@@ -122,7 +218,7 @@ func SetupModalHandlers(app *tview.Application, modal *tview.Modal, parent tview
 }
 
 // Function to move selected item up or down in the list
-func moveSelectedItem(list *tview.List, direction string) {
+func moveSelectedItem(list *tview.List, direction string, appData *AppData) {
 	currentIndex := list.GetCurrentItem()
 	itemCount := list.GetItemCount()
 
@@ -142,10 +238,10 @@ func moveSelectedItem(list *tview.List, direction string) {
 			list.SetCurrentItem(currentIndex - 1)
 
 			// Save the updated list
-			items := GetTodoItems(list)
-
-			if err := SaveTodoList(items); err != nil {
-				fmt.Println("Error saving todo items:", err.Error())
+			currentSubject := GetCurrentSubject(appData)
+			if currentSubject != nil {
+				currentSubject.Items = GetTodoItems(list)
+				SaveAppData(appData)
 			}
 		}
 
@@ -164,23 +260,106 @@ func moveSelectedItem(list *tview.List, direction string) {
 			list.SetCurrentItem(currentIndex + 1)
 
 			// Save the updated list
-			items := GetTodoItems(list)
+			currentSubject := GetCurrentSubject(appData)
 
-			if err := SaveTodoList(items); err != nil {
-				fmt.Println("Error saving todo items:", err.Error())
+			if currentSubject != nil {
+				currentSubject.Items = GetTodoItems(list)
+				SaveAppData(appData)
 			}
 		}
 	}
 }
 
+// Refresh todo list with current subject items
+func refreshTodoList(list *tview.List, appData *AppData) {
+	currentSubject := GetCurrentSubject(appData)
+
+	if currentSubject != nil {
+		LoadTodoItems(list, currentSubject.Items)
+	}
+}
+
+// Show modal for creating new subject
+func showNewSubjectModal(app *tview.Application, sidebar *tview.List, list *tview.List, mainLayout tview.Primitive, appData *AppData) {
+	form := CreateInputModal("New Subject", "Subject name:")
+
+	form.GetButton(0).SetSelectedFunc(func() {
+		// OK button
+		subjectName := form.GetFormItem(0).(*tview.InputField).GetText()
+
+		if subjectName != "" {
+			AddSubject(appData, subjectName)
+			appData.CurrentSubject = subjectName
+			LoadSubjects(sidebar, appData.Subjects, appData.CurrentSubject)
+			refreshTodoList(list, appData)
+			list.SetTitle("Todo list - " + appData.CurrentSubject + " (Press ? for help)")
+			SaveAppData(appData)
+		}
+		app.SetRoot(mainLayout, true).SetFocus(sidebar)
+	})
+
+	form.GetButton(1).SetSelectedFunc(func() {
+		// Cancel button
+		app.SetRoot(mainLayout, true).SetFocus(sidebar)
+	})
+
+	app.SetRoot(form, true)
+}
+
+// Show modal for renaming a subject
+func showRenameSubjectModal(app *tview.Application, sidebar *tview.List, list *tview.List, mainLayout tview.Primitive, appData *AppData, oldName string) {
+	form := CreateInputModal("Rename Subject", "New name:")
+
+	// Pre-fill with current name
+	inputField := form.GetFormItem(0).(*tview.InputField)
+	inputField.SetText(oldName)
+
+	form.GetButton(0).SetSelectedFunc(func() {
+		// OK button
+		newName := inputField.GetText()
+
+		if newName != "" && RenameSubject(appData, oldName, newName) {
+			LoadSubjects(sidebar, appData.Subjects, appData.CurrentSubject)
+			refreshTodoList(list, appData)
+			list.SetTitle("Todo list - " + appData.CurrentSubject + " (Press ? for help)")
+			SaveAppData(appData)
+		}
+		app.SetRoot(mainLayout, true).SetFocus(sidebar)
+	})
+
+	form.GetButton(1).SetSelectedFunc(func() {
+		// Cancel button
+		app.SetRoot(mainLayout, true).SetFocus(sidebar)
+	})
+
+	app.SetRoot(form, true)
+}
+
 // Function to handle '?' key press in list widget
 func showHelpHandler(app *tview.Application, list *tview.List, mainLayout tview.Primitive) {
 	// Create a help modal dialog
-	modal := CreateModalDialog(`Help 
+	modal := CreateModalDialog(`Help - Navigation & Controls
 		
-		Press Tab to toggle insert mode
-		Backspace to delete items
-		Shift + Up/Down to move items`)
+		Navigation:
+		Tab: Cycle focus through Input → Todo List → Subjects
+		Esc: Focus Subjects panel from any pane
+		
+		Input Panel:
+		Enter: Add todo item to current subject
+		
+		Todo List:
+		Backspace: Delete selected item
+		Shift + Up/Down: Move items up/down
+		
+		Subjects Panel:
+		Enter: Select/switch to subject
+		'n': Create new subject
+		'r': Rename current subject
+		'd': Delete current subject
+		
+		General:
+		'?': Show this help dialog
+		'q': Quit application`)
 
 	// Setup modal handlers to return to the main layout
 	modal.SetDoneFunc(func(buttonIndex int, buttonLabel string) {

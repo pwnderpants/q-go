@@ -14,9 +14,16 @@ type TodoItem struct {
 	Completed bool   `yaml:"completed"`
 }
 
-// The entire todo list
-type TodoList struct {
-	Items []TodoItem `yaml:"todos"`
+// Subject with its own todo list
+type Subject struct {
+	Name  string     `yaml:"name"`
+	Items []TodoItem `yaml:"items"`
+}
+
+// The entire application data
+type AppData struct {
+	Subjects       []Subject `yaml:"subjects"`
+	CurrentSubject string    `yaml:"current_subject"`
 }
 
 // Setup the storage path for save file
@@ -34,22 +41,20 @@ func getStoragePath() (string, error) {
 		return "", fmt.Errorf("failed to create .q-go directory: %w", err)
 	}
 
-	return filepath.Join(qGoDir, "list.yaml"), nil
+	return filepath.Join(qGoDir, "data.yaml"), nil
 }
 
-// Saves the todo list to YAML file
-func SaveTodoList(items []TodoItem) error {
+// Saves the application data to YAML file
+func SaveAppData(appData *AppData) error {
 	storagePath, err := getStoragePath()
 
 	if err != nil {
 		return err
 	}
 
-	todoList := TodoList{Items: items}
-
-	data, err := yaml.Marshal(todoList)
+	data, err := yaml.Marshal(appData)
 	if err != nil {
-		return fmt.Errorf("failed to marshal todo list: %w", err)
+		return fmt.Errorf("failed to marshal app data: %w", err)
 	}
 
 	if err := os.WriteFile(storagePath, data, 0644); err != nil {
@@ -59,8 +64,8 @@ func SaveTodoList(items []TodoItem) error {
 	return nil
 }
 
-// Loads the todo list from YAML file
-func LoadTodoList() ([]TodoItem, error) {
+// Loads the application data from YAML file
+func LoadAppData() (*AppData, error) {
 	storagePath, err := getStoragePath()
 
 	if err != nil {
@@ -69,8 +74,11 @@ func LoadTodoList() ([]TodoItem, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(storagePath); os.IsNotExist(err) {
-		// File doesn't exist, return empty list
-		return []TodoItem{}, nil
+		// File doesn't exist, return default with General subject
+		return &AppData{
+			Subjects:       []Subject{{Name: "General", Items: []TodoItem{}}},
+			CurrentSubject: "General",
+		}, nil
 	}
 
 	data, err := os.ReadFile(storagePath)
@@ -79,11 +87,29 @@ func LoadTodoList() ([]TodoItem, error) {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
 
-	var todoList TodoList
+	var appData AppData
 
-	if err := yaml.Unmarshal(data, &todoList); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal todo list: %w", err)
+	if err := yaml.Unmarshal(data, &appData); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal app data: %w", err)
 	}
 
-	return todoList.Items, nil
+	// Ensure we have at least one subject
+	if len(appData.Subjects) == 0 {
+		appData.Subjects = []Subject{{Name: "General", Items: []TodoItem{}}}
+		appData.CurrentSubject = "General"
+	}
+
+	// Ensure current subject exists
+	found := false
+	for _, subject := range appData.Subjects {
+		if subject.Name == appData.CurrentSubject {
+			found = true
+			break
+		}
+	}
+	if !found {
+		appData.CurrentSubject = appData.Subjects[0].Name
+	}
+
+	return &appData, nil
 }
