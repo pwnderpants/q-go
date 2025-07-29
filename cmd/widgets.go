@@ -148,7 +148,7 @@ func CreateModalDialog(msg string) *tview.Modal {
 		SetBackgroundColor((tcell.ColorDefault)).
 		SetTextColor((tcell.ColorRed))
 
-	return modal
+		return modal
 }
 
 // Create input modal for new subject
@@ -157,6 +157,12 @@ func CreateInputModal(title, label string) *tview.Form {
 	form.SetTitle(title)
 	form.SetBorder(true)
 	form.SetBackgroundColor(tcell.ColorDefault)
+	form.SetLabelColor(tcell.ColorDefault)
+	form.SetFieldBackgroundColor(tcell.ColorDefault)
+	form.SetFieldTextColor(tcell.ColorDefault)
+	form.SetButtonBackgroundColor(tcell.ColorDefault)
+	form.SetButtonTextColor(tcell.ColorDefault)
+	form.SetButtonActivatedStyle(tcell.StyleDefault.Background(tcell.ColorBlue).Foreground(tcell.ColorBlack))
 	form.AddInputField(label, "", 20, nil, nil)
 	form.AddButton("OK", nil)
 	form.AddButton("Cancel", nil)

@@ -70,6 +70,13 @@ func SetupListHandlers(app *tview.Application, text *tview.InputField, list *tvi
 			return nil
 		}
 
+		if event.Rune() == 'e' {
+			// Edit currently selected item
+			editSelectedItem(app, list, mainLayout, appData)
+
+			return nil
+		}
+
 		if event.Rune() == '?' {
 			// Show help when user presses '?' button
 			showHelpHandler(app, list, mainLayout)
@@ -283,6 +290,12 @@ func refreshTodoList(list *tview.List, appData *AppData) {
 func showNewSubjectModal(app *tview.Application, sidebar *tview.List, list *tview.List, mainLayout tview.Primitive, appData *AppData) {
 	form := CreateInputModal("New Subject", "Subject name:")
 
+	// Ensure Tab navigation works in the form
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// Let the form handle Tab navigation naturally
+		return event
+	})
+
 	form.GetButton(0).SetSelectedFunc(func() {
 		// OK button
 		subjectName := form.GetFormItem(0).(*tview.InputField).GetText()
@@ -306,13 +319,79 @@ func showNewSubjectModal(app *tview.Application, sidebar *tview.List, list *tvie
 	app.SetRoot(form, true)
 }
 
+// Show modal for editing selected item
+func editSelectedItem(app *tview.Application, list *tview.List, mainLayout tview.Primitive, appData *AppData) {
+	currentIndex := list.GetCurrentItem()
+	if currentIndex < 0 || currentIndex >= list.GetItemCount() {
+		return
+	}
+
+	currentText, _ := list.GetItemText(currentIndex)
+	form := CreateInputModal("Edit Item", "Item text:")
+
+	// Pre-fill with current text
+	inputField := form.GetFormItem(0).(*tview.InputField)
+	inputField.SetText(currentText)
+
+	// Handle ESC key and allow Tab navigation
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			// ESC acts like Cancel button
+			app.SetRoot(mainLayout, true).SetFocus(list)
+
+			return nil
+		}
+		// Let the form handle Tab navigation naturally
+		return event
+	})
+
+	form.GetButton(0).SetSelectedFunc(func() {
+		// OK button
+		newText := inputField.GetText()
+
+		if newText != "" {
+			// Update the item text
+			list.SetItemText(currentIndex, newText, "")
+
+			// Save changes
+			currentSubject := GetCurrentSubject(appData)
+			if currentSubject != nil {
+				currentSubject.Items = GetTodoItems(list)
+
+				SaveAppData(appData)
+			}
+		}
+		app.SetRoot(mainLayout, true).SetFocus(list)
+	})
+
+	form.GetButton(1).SetSelectedFunc(func() {
+		// Cancel button
+		app.SetRoot(mainLayout, true).SetFocus(list)
+	})
+
+	app.SetRoot(form, true)
+}
+
 // Show modal for renaming a subject
 func showRenameSubjectModal(app *tview.Application, sidebar *tview.List, list *tview.List, mainLayout tview.Primitive, appData *AppData, oldName string) {
 	form := CreateInputModal("Rename Subject", "New name:")
 
 	// Pre-fill with current name
 	inputField := form.GetFormItem(0).(*tview.InputField)
+
 	inputField.SetText(oldName)
+
+	// Handle ESC key and allow Tab navigation
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			// ESC acts like Cancel button
+			app.SetRoot(mainLayout, true).SetFocus(sidebar)
+
+			return nil
+		}
+		// Let the form handle Tab navigation naturally
+		return event
+	})
 
 	form.GetButton(0).SetSelectedFunc(func() {
 		// OK button
@@ -348,6 +427,7 @@ func showHelpHandler(app *tview.Application, list *tview.List, mainLayout tview.
 		Enter: Add todo item to current subject
 		
 		Todo List:
+		'e': Edit selected item
 		Backspace: Delete selected item
 		Shift + Up/Down: Move items up/down
 		
