@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
@@ -10,9 +9,13 @@ func CreateTodoList() *tview.List {
 	list := tview.NewList()
 	list.SetTitle("Todo list - (Press ? for help)")
 	list.SetBorder(true)
-	list.SetBackgroundColor(tcell.ColorDefault)
-	list.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
-	list.SetSecondaryTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+	list.SetBackgroundColor(MacchiatoBase)
+	list.SetTitleColor(MacchiatoMauve)
+	list.SetBorderColor(MacchiatoSubtext0)
+	list.SetMainTextStyle(MacchiatoStyleDefault)
+	list.SetSecondaryTextStyle(MacchiatoStyleSecondary)
+	list.SetSelectedBackgroundColor(MacchiatoMantle)
+	list.SetSelectedTextColor(MacchiatoText)
 
 	return list
 }
@@ -20,12 +23,13 @@ func CreateTodoList() *tview.List {
 // Setup and configure input widget
 func CreateInputField() *tview.InputField {
 	text := tview.NewInputField().SetLabel("Add new todo item: ")
-	text.SetBackgroundColor(tcell.ColorDefault)
-	text.SetLabelColor(tcell.ColorDefault)
-	text.SetLabelStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
-	text.SetFieldTextColor(tcell.ColorYellow)
-	text.SetFieldBackgroundColor(tcell.ColorDefault)
+	text.SetBackgroundColor(MacchiatoBase)
+	text.SetLabelColor(MacchiatoText)
+	text.SetLabelStyle(MacchiatoStyleDefault)
+	text.SetFieldTextColor(MacchiatoYellow)
+	text.SetFieldBackgroundColor(MacchiatoMantle)
 	text.SetBorder(true)
+	text.SetBorderColor(MacchiatoSubtext0)
 
 	return text
 }
@@ -60,9 +64,13 @@ func CreateSubjectSidebar() *tview.List {
 	sidebar := tview.NewList()
 	sidebar.SetTitle("Subjects")
 	sidebar.SetBorder(true)
-	sidebar.SetBackgroundColor(tcell.ColorDefault)
-	sidebar.SetMainTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
-	sidebar.SetSecondaryTextStyle(tcell.StyleDefault.Background(tcell.ColorDefault))
+	sidebar.SetBackgroundColor(MacchiatoBase)
+	sidebar.SetTitleColor(MacchiatoMauve)
+	sidebar.SetBorderColor(MacchiatoSubtext0)
+	sidebar.SetMainTextStyle(MacchiatoStyleDefault)
+	sidebar.SetSecondaryTextStyle(MacchiatoStyleSecondary)
+	sidebar.SetSelectedBackgroundColor(MacchiatoMantle)
+	sidebar.SetSelectedTextColor(MacchiatoText)
 	sidebar.ShowSecondaryText(false)
 	sidebar.SetWrapAround(false)
 
@@ -145,8 +153,10 @@ func CreateModalDialog(msg string) *tview.Modal {
 	modal := tview.NewModal().
 		SetText(msg).
 		AddButtons([]string{"OK"}).
-		SetBackgroundColor((tcell.ColorDefault)).
-		SetTextColor((tcell.ColorRed))
+		SetBackgroundColor(MacchiatoBase).
+		SetTextColor(MacchiatoRed).
+		SetButtonBackgroundColor(MacchiatoMantle).
+		SetButtonTextColor(MacchiatoText)
 
 	return modal
 }
@@ -156,7 +166,14 @@ func CreateInputModal(title, label string) *tview.Form {
 	form := tview.NewForm()
 	form.SetTitle(title)
 	form.SetBorder(true)
-	form.SetBackgroundColor(tcell.ColorDefault)
+	form.SetBackgroundColor(MacchiatoBase)
+	form.SetTitleColor(MacchiatoMauve)
+	form.SetBorderColor(MacchiatoSubtext0)
+	form.SetLabelColor(MacchiatoText)
+	form.SetFieldTextColor(MacchiatoYellow)
+	form.SetFieldBackgroundColor(MacchiatoMantle)
+	form.SetButtonBackgroundColor(MacchiatoMantle)
+	form.SetButtonTextColor(MacchiatoText)
 	form.AddInputField(label, "", 20, nil, nil)
 	form.AddButton("OK", nil)
 	form.AddButton("Cancel", nil)

@@ -18,6 +18,19 @@ func Execute() {
 
 	// Create application
 	app := tview.NewApplication()
+	
+	// Set application theme
+	tview.Styles.PrimitiveBackgroundColor = MacchiatoBase
+	tview.Styles.ContrastBackgroundColor = MacchiatoMantle
+	tview.Styles.MoreContrastBackgroundColor = MacchiatoCrust
+	tview.Styles.BorderColor = MacchiatoSubtext0
+	tview.Styles.TitleColor = MacchiatoMauve
+	tview.Styles.GraphicsColor = MacchiatoSubtext0
+	tview.Styles.PrimaryTextColor = MacchiatoText
+	tview.Styles.SecondaryTextColor = MacchiatoSubtext1
+	tview.Styles.TertiaryTextColor = MacchiatoSubtext0
+	tview.Styles.InverseTextColor = MacchiatoBase
+	tview.Styles.ContrastSecondaryTextColor = MacchiatoText
 
 	// Create layout
 	flex := CreateMainLayout(text, list, sidebar)
